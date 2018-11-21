@@ -16,42 +16,42 @@
 */
 
 
-namespace ngcomp
-{
+namespace ngcomp {
 
-  class MyFESpace : public FESpace
-  {
-    bool secondorder;
-    int ndof, nvert;
-    
-  public:
-    /*
-      constructor. 
-      Arguments are the access to the mesh data structure,
-      and the flags from the define command in the pde-file
-      or the kwargs in the Python constructor.
-    */
-    MyFESpace (shared_ptr<MeshAccess> ama, const Flags & flags);
+    class MyFESpace : public FESpace {
+        bool secondorder;
+        string FE_geom="";
+        int ndof, nvert;
 
-    // a name for our new fe-space
-    virtual string GetClassName () const
-    {
-      return "MyFESpace";
-    }
+    public:
+        /*
+          constructor.
+          Arguments are the access to the mesh data structure,
+          and the flags from the define command in the pde-file
+          or the kwargs in the Python constructor.
+        */
+        MyFESpace(shared_ptr<MeshAccess> ama, const Flags &flags);
 
-    static DocInfo GetDocu();
+        // a name for our new fe-space
+        virtual string GetClassName() const {
+            return "MyFESpace";
+        }
 
-    virtual void Update(LocalHeap & lh);
-    virtual size_t GetNDof () const { return ndof; }
-    
-    virtual void GetDofNrs (ElementId ei, Array<DofId> & dnums) const;
-    virtual FiniteElement & GetFE (ElementId ei, Allocator & alloc) const;
+        static DocInfo GetDocu();
 
-    // some new functionality our space should have in Python
-    int GetNVert() { return nvert; }
-  };
+        virtual void Update(LocalHeap &lh);
 
-}    
+        virtual size_t GetNDof() const { return ndof; }
+
+        virtual void GetDofNrs(ElementId ei, Array<DofId> &dnums) const;
+
+        virtual FiniteElement &GetFE(ElementId ei, Allocator &alloc) const;
+
+        // some new functionality our space should have in Python
+        int GetNVert() { return nvert; }
+    };
+
+}
 
 void ExportMyFESpace(py::module m);
 

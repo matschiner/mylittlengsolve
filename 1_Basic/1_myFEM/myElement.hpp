@@ -48,7 +48,32 @@ namespace ngfem
     using ScalarFiniteElement<2>::CalcShape;    
     using ScalarFiniteElement<2>::CalcDShape;
   };
+    class MyLinearRect : public ScalarFiniteElement<2>
+    {
+    public:
+        // constructor
+        MyLinearRect ();
 
+        virtual ELEMENT_TYPE ElementType() const { return ET_QUAD; }
+
+        /*
+          Calculate the vector of shape functions in the point ip.
+          ip is given in the reference element.
+         */
+        virtual void CalcShape (const IntegrationPoint & ip,
+                                BareSliceVector<> shape) const;
+
+        /*
+          Calculate the matrix of derivatives of the shape functions in the point ip.
+          dshape is an 3 by 2 matrix in our case.
+         */
+        virtual void CalcDShape (const IntegrationPoint & ip,
+                                 BareSliceMatrix<> dshape) const;
+
+        // there are some more functions to bring in ...
+        using ScalarFiniteElement<2>::CalcShape;
+        using ScalarFiniteElement<2>::CalcDShape;
+    };
 
   /*
     A triangular finite element with second order basis functions

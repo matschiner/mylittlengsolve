@@ -1,12 +1,14 @@
 from netgen.geom2d import unit_square
+import netgen.gui
 from ngsolve import *
 from myngspy import *
 
-mesh = Mesh(unit_square.GenerateMesh(maxh=0.2))
+mesh = Mesh(unit_square.GenerateMesh(maxh=0.1,quad_dominated=1))
 
-fes = MyFESpace(mesh, dirichlet="top|bottom|right|left")
-# fes = FESpace("myfespace", mesh, dirichlet="top|bottom|right|left", flags={"secondorder":True})
-print ("freedofs: ", fes.FreeDofs())
+#fes = MyFESpace(mesh, dirichlet="top|bottom|right|left")
+fes = FESpace("myfespace", mesh, dirichlet="top|bottom|right|left", flags={"secondorder":False,"FE_geom":"rect"})
+#print ("freedofs: ", fes.FreeDofs())
+
 
 u = fes.TrialFunction()
 v = fes.TestFunction()
@@ -28,3 +30,4 @@ print ("solve")
 u.vec.data = a.mat.Inverse(fes.FreeDofs()) * f.vec
 
 Draw(u)
+
