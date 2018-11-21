@@ -28,7 +28,7 @@ namespace ngcomp {
     MyFESpace::MyFESpace(shared_ptr<MeshAccess> ama, const Flags &flags)
             : FESpace(ama, flags) {
         cout << "Constructor of MyFESpace" << endl;
-        cout << "Flags = " << flags << endl;
+        //cout << "Flags = " << flags << endl;
 
         secondorder = flags.GetDefineFlag("secondorder");
         FE_geom = flags.GetStringFlag("FE_geom", "trig");

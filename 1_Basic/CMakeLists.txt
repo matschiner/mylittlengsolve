@@ -22,3 +22,4 @@ endif(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
 message("The python package will be installed to: ${CMAKE_INSTALL_PREFIX}")
 install(TARGETS myngspy DESTINATION .)
+
