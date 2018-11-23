@@ -31,8 +31,8 @@ namespace ngcomp {
         //cout << "Flags = " << flags << endl;
 
         secondorder = flags.GetDefineFlag("secondorder");
-        FE_geom = flags.GetStringFlag("FE_geom", "trig");
-        cout << "You have chosen the following type of FE elements: " << FE_geom << endl;
+        // FE_geom = flags.GetStringFlag("FE_geom", "trig");
+        // cout << "You have chosen the following type of FE elements: " << FE_geom << endl;
         if (!secondorder)
             cout << "You have chosen first order elements" << endl;
         else
@@ -89,11 +89,10 @@ namespace ngcomp {
 
     FiniteElement &MyFESpace::GetFE(ElementId ei, Allocator &alloc) const {
         if (ei.IsVolume()) {
-            //cout<< ma->GetElVertices(ei).Size() <<endl;
             if (!secondorder) {
-                if (ma->GetElVertices(ei).Size() == 4) {
+                if (ma->GetElType(ei) == ET_QUAD) {
                     return *new(alloc) MyLinearRect;
-                } else if (ma->GetElVertices(ei).Size() == 3) {
+                } else if (ma->GetElType(ei) == ET_TRIG) {
                     return *new(alloc) MyLinearTrig;
                 } else {
                     cout << "no method found for FE with " << ma->GetElVertices(ei).Size() << " vertices" << endl;
