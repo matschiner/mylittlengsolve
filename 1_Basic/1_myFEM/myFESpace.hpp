@@ -19,7 +19,8 @@
 namespace ngcomp {
 
     class MyFESpace : public FESpace {
-        bool secondorder;
+
+        int order;
         string FE_geom="";
         int ndof, nvert;
 

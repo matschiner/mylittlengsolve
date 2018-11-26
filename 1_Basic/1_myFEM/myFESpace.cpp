@@ -30,14 +30,11 @@ namespace ngcomp {
         cout << "Constructor of MyFESpace" << endl;
         //cout << "Flags = " << flags << endl;
 
-        secondorder = flags.GetDefineFlag("secondorder");
+        order = flags.GetNumFlag("order", 1);
         FE_geom = flags.GetStringFlag("FE_geom", "trig");
         cout << "You have chosen the following type of FE elements: " << FE_geom << endl;
-        if (!secondorder)
-            cout << "You have chosen first order elements" << endl;
-        else
-            cout << "You have chosen second order elements" << endl;
 
+        cout << "You have chosen the following order of elements: " << order << endl;
 
         // needed for symbolic integrators and to draw solution
         evaluator[VOL] = make_shared<T_DifferentialOperator<DiffOpId<2>>>();
@@ -52,45 +49,79 @@ namespace ngcomp {
     DocInfo MyFESpace::GetDocu() {
         auto docu = FESpace::GetDocu();
         docu.Arg("secondorder") = "bool = False\n"
-                "  Use second order basis functions";
+                                  "  Use second order basis functions";
+        docu.Arg("order") = "order = 1,2,3 \n"
+                            "  Use higher order basis functions";
         return docu;
     }
 
     void MyFESpace::Update(LocalHeap &lh) {
         // some global update:
         cout << "Update MyFESpace, #vert = " << ma->GetNV()
-             << ", #edge = " << ma->GetNEdges() << endl;
+             << ", #edge = " << ma->GetNEdges() << ", #elems = " << ma->GetNElements(2) << endl;
 
         // number of vertices
         nvert = ma->GetNV();
 
         // number of dofs:
         ndof = nvert;
-        if (secondorder)
+        if (order == 2) {
             ndof += ma->GetNEdges();  // num vertics + num edges
+        } else if (order == 3) {
+            ndof += 2 * ma->GetNEdges();  // num vertics + num edges
+            ndof += ma->GetNElements(2);
+            cout << "ndof now for order 3: " << ndof << endl;
+        }
+        cout << "lsjdljf" << endl;
     }
 
     void MyFESpace::GetDofNrs(ElementId ei, Array<DofId> &dnums) const {
         // returns dofs of element ei
         // may be a volume triangle or boundary segment
 
+
         dnums.SetSize(0);
 
         // first dofs are vertex numbers:
-        for (auto v : ma->GetElVertices(ei))
-            dnums.Append(v);
-
-        if (secondorder) {
-            // more dofs on edges:
-            for (auto e : ma->GetElEdges(ei))
-                dnums.Append(nvert + e);
+        if (order <= 2) {
+            for (auto v : ma->GetElVertices(ei))
+                dnums.Append(v);
+            if (order == 2) {
+                // more dofs on edges:
+                for (auto e : ma->GetElEdges(ei))
+                    dnums.Append(nvert + e);
+            }
         }
+
+
+        if (order == 3) {
+            for (auto v : ma->GetElVertices(ei))
+                for (auto i: Range(10))
+                    dnums.Append(i * nvert + v);
+            /*int offset = dnums.Size();
+            for (auto e : ma->GetElEdges(ei)) {
+                cout << "e" << e << endl;
+                dnums.Append(offset + e);
+            }
+            offset = dnums.Size();
+            for (auto e : ma->GetElEdges(ei)) {
+                cout << "e" << e << endl;
+                dnums.Append(offset + e);
+            }
+            offset = dnums.Size();
+            int middle = offset + ei.Nr();
+            dnums.Append(middle);*/
+
+        }
+
     }
 
     FiniteElement &MyFESpace::GetFE(ElementId ei, Allocator &alloc) const {
+        cout << "rjljsldjf " << ma->GetElVertices(ei).Size() << endl;
         if (ei.IsVolume()) {
-            //cout<< ma->GetElVertices(ei).Size() <<endl;
-            if (!secondorder) {
+
+
+            if (order == 1) {
                 if (ma->GetElVertices(ei).Size() == 4) {
                     return *new(alloc) MyLinearRect;
                 } else if (ma->GetElVertices(ei).Size() == 3) {
@@ -99,10 +130,15 @@ namespace ngcomp {
                     cout << "no method found for FE with " << ma->GetElVertices(ei).Size() << " vertices" << endl;
                     return *new(alloc) MyLinearTrig;
                 }
-            } else
+            } else if (order == 2) {
                 return *new(alloc) MyQuadraticTrig;
+            } else if (order == 3) {
+                cout << "test2 cubix" << endl;
+                return *new(alloc) MyCubicTrig;
+            }
+
         } else {
-            if (!secondorder)
+            if (order == 1)
                 return *new(alloc) FE_Segm1;
             else
                 return *new(alloc) FE_Segm2;
@@ -137,9 +173,12 @@ void ExportMyFESpace(py::module m) {
                 py::list info;
                 info.append(ma);
                 auto flags = CreateFlagsFromKwArgs(myfes, kwa, info);
+                cout << "lsjdlfjljfaöhg" << endl;
                 auto fes = make_shared<MyFESpace>(ma, flags);
+                cout << "lsjdlfjljaöhg" << endl;
                 LocalHeap glh(100000000, "init-fes-lh");
                 fes->Update(glh);
+                cout << "lsjdlfj" << endl;
                 fes->FinalizeUpdate(glh);
                 return fes;
             }), py::arg("mesh"))

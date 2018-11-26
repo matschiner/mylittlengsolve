@@ -14,45 +14,43 @@ My own simple first and second order triangular finite elements
 */
 
 
-namespace ngfem
-{
+namespace ngfem {
 
-  /*
-    A linear triangular finite element is a scalar element in two dimension, 
-    thus we derive it from the ScalarFiniteElement<2> base class:
-   */
-
-  class MyLinearTrig : public ScalarFiniteElement<2>
-  {
-  public:
-    // constructor
-    MyLinearTrig ();
-
-    virtual ELEMENT_TYPE ElementType() const { return ET_TRIG; }
-    
     /*
-      Calculate the vector of shape functions in the point ip.
-      ip is given in the reference element.
+      A linear triangular finite element is a scalar element in two dimension,
+      thus we derive it from the ScalarFiniteElement<2> base class:
      */
-    virtual void CalcShape (const IntegrationPoint & ip, 
-                            BareSliceVector<> shape) const;
-  
-    /*
-      Calculate the matrix of derivatives of the shape functions in the point ip.
-      dshape is an 3 by 2 matrix in our case.
-     */
-    virtual void CalcDShape (const IntegrationPoint & ip, 
-                             BareSliceMatrix<> dshape) const;
 
-    // there are some more functions to bring in ...
-    using ScalarFiniteElement<2>::CalcShape;    
-    using ScalarFiniteElement<2>::CalcDShape;
-  };
-    class MyLinearRect : public ScalarFiniteElement<2>
-    {
+    class MyLinearTrig : public ScalarFiniteElement<2> {
     public:
         // constructor
-        MyLinearRect ();
+        MyLinearTrig();
+
+        virtual ELEMENT_TYPE ElementType() const { return ET_TRIG; }
+
+        /*
+          Calculate the vector of shape functions in the point ip.
+          ip is given in the reference element.
+         */
+        virtual void CalcShape(const IntegrationPoint &ip,
+                               BareSliceVector<> shape) const;
+
+        /*
+          Calculate the matrix of derivatives of the shape functions in the point ip.
+          dshape is an 3 by 2 matrix in our case.
+         */
+        virtual void CalcDShape(const IntegrationPoint &ip,
+                                BareSliceMatrix<> dshape) const;
+
+        // there are some more functions to bring in ...
+        using ScalarFiniteElement<2>::CalcShape;
+        using ScalarFiniteElement<2>::CalcDShape;
+    };
+
+    class MyLinearRect : public ScalarFiniteElement<2> {
+    public:
+        // constructor
+        MyLinearRect();
 
         virtual ELEMENT_TYPE ElementType() const { return ET_QUAD; }
 
@@ -60,38 +58,58 @@ namespace ngfem
           Calculate the vector of shape functions in the point ip.
           ip is given in the reference element.
          */
-        virtual void CalcShape (const IntegrationPoint & ip,
-                                BareSliceVector<> shape) const;
+        virtual void CalcShape(const IntegrationPoint &ip,
+                               BareSliceVector<> shape) const;
 
         /*
           Calculate the matrix of derivatives of the shape functions in the point ip.
           dshape is an 3 by 2 matrix in our case.
          */
-        virtual void CalcDShape (const IntegrationPoint & ip,
-                                 BareSliceMatrix<> dshape) const;
+        virtual void CalcDShape(const IntegrationPoint &ip,
+                                BareSliceMatrix<> dshape) const;
 
         // there are some more functions to bring in ...
         using ScalarFiniteElement<2>::CalcShape;
         using ScalarFiniteElement<2>::CalcDShape;
     };
 
-  /*
-    A triangular finite element with second order basis functions
-   */
-  class MyQuadraticTrig : public ScalarFiniteElement<2>
-  {
-  public:
-    MyQuadraticTrig ();
-    virtual ELEMENT_TYPE ElementType() const { return ET_TRIG; }
-    virtual void CalcShape (const IntegrationPoint & ip, 
-                            BareSliceVector<> shape) const;
-  
-    virtual void CalcDShape (const IntegrationPoint & ip, 
-                             BareSliceMatrix<> dshape) const;
+    class MyCubicTrig : public ScalarFiniteElement<2> {
+    public:
+        // constructor
+        MyCubicTrig();
 
-    using ScalarFiniteElement<2>::CalcShape;    
-    using ScalarFiniteElement<2>::CalcDShape;    
-  };
+        virtual ELEMENT_TYPE ElementType() const { return ET_TRIG; }
+
+
+        virtual void CalcShape(const IntegrationPoint &ip,
+                               BareSliceVector<> shape) const;
+
+        virtual void CalcDShape(const IntegrationPoint &ip,
+                                BareSliceMatrix<> dshape) const;
+
+        // there are some more functions to bring in ...
+        using ScalarFiniteElement<2>::CalcShape;
+        using ScalarFiniteElement<2>::CalcDShape;
+    };
+
+    /*
+      A triangular finite element with second order basis functions
+     */
+    class MyQuadraticTrig : public ScalarFiniteElement<2> {
+    public:
+        MyQuadraticTrig();
+
+        virtual ELEMENT_TYPE ElementType() const { return ET_TRIG; }
+
+        virtual void CalcShape(const IntegrationPoint &ip,
+                               BareSliceVector<> shape) const;
+
+        virtual void CalcDShape(const IntegrationPoint &ip,
+                                BareSliceMatrix<> dshape) const;
+
+        using ScalarFiniteElement<2>::CalcShape;
+        using ScalarFiniteElement<2>::CalcDShape;
+    };
 
 }
 
