@@ -36,7 +36,7 @@ namespace ngfem {
           Vertex coordinates have been defined to be (1,0), (0,1), (0,0)
           see ElementTopology::GetVertices(ET_TRIG)
          */
-        cout << shape.Dist()<<"sdfa"<< endl;
+        cout << shape.Dist() << "sdfa" << endl;
         // define shape functions
         shape(0) = x;
         shape(1) = y;
@@ -60,51 +60,55 @@ namespace ngfem {
       Call constructor for base class:
       geometry is ET_TRIG, number of dofs is 3, maximal order is 1
      */
-            : ScalarFiniteElement<2>(10, 1) { ; }
+            : ScalarFiniteElement<2>(10, 3) { ; }
 
+    std::array<AutoDiff<2>, 10> MyCubicTrig::GetBasis(const IntegrationPoint &ip) const {
+        AutoDiff<2> x(ip(0), 0);
+        AutoDiff<2> y(ip(1), 1);
+        auto b0 = x;
+        auto b1 = y;
+        auto b2 = 1 - x - y;
+        return {
+                (9. / 2.) * b0 * ((1. / 3.) - b0) * ((2. / 3.) - b0),
+                (9. / 2.) * b1 * ((1. / 3.) - b1) * ((2. / 3.) - b1),
+                (9. / 2.) * b2 * ((1. / 3.) - b2) * ((2. / 3.) - b2),
+                (27. / 2.) * b0 * b2 * (b2 - (1. / 3.)),
+                (27. / 2.) * b0 * b2 * (b0 - (1. / 3.)),
+                (27. / 2.) * b1 * b2 * (b1 - (1. / 3.)),
+                (27. / 2.) * b1 * b2 * (b2 - (1. / 3.)),
+                (27. / 2.) * b0 * b1 * (b0 - (1. / 3.)),
+                (27. / 2.) * b0 * b1 * (b1 - (1. / 3.)),
+                27 * b0 * b1 * b2,
+        };
+    }
 
+    /*
+     *
+     */
     void MyCubicTrig::CalcShape(const IntegrationPoint &ip,
                                 BareSliceVector<> shape) const {
-        // coordinates in reference elements
-        double x = ip(0);
-        double y = ip(1);
-        double b0 = x;
-        double b1 = y;
-        double b2 = 1 - x - y;
-        cout << shape.Dist()<<"ljsdljf"<< endl;
-        cout << shape.Dist()<<"sdfa"<< endl;
+        // coordinates in reference elements;
 
-        /*
-          Vertex coordinates have been defined to be (1,0), (0,1), (0,0)
-          see ElementTopology::GetVertices(ET_TRIG)
-         */
+        auto basis = GetBasis(ip);
 
-        // define shape functions
-        shape(0) = 9. / 2 * b0 * (1 / 3. - b0) * (2 / 3. - b0);
-        shape(3) = 9. / 2 * b1 * (1 / 3. - b1) * (2 / 3. - b1);
-        shape(6) = 9. / 2 * b2 * (1 / 3. - b2) * (2 / 3. - b2);
-        shape(1) = 27. / 2 * b0 * b1 * (b0 - 1 / 3.);
-        shape(2) = 27. / 2 * b0 * b1 * (b2 - 1 / 3.);
-        shape(4) = 27. / 2 * b1 * b2 * (b1 - 1 / 3.);
-        shape(5) = 27. / 2 * b1 * b2 * (b2 - 1 / 3.);
-        shape(7) = 9. / 2 * b0 * b2 * (b2 - 1 / 3.);
-        shape(8) = 27. / 2 * b0 * b2 * (b0 - 1 / 3.);
-        shape(9) = 27 * b0 * b1 * b2;
-        cout << "ljsdljfsd"<< endl;
+        for (int i = 0; i < 10; i++) {
+            shape(i) = basis[i].Value();
+        }
 
     }
 
     void MyCubicTrig::CalcDShape(const IntegrationPoint &ip,
                                  BareSliceMatrix<> dshape) const {
-        // matrix of derivatives:
+        auto basis = GetBasis(ip);
+        for (int i = 0; i < 10; i++) {
 
-        dshape(0, 0) = 1;
-        dshape(0, 1) = 0;
-        dshape(1, 0) = 0;
-        dshape(1, 1) = 1;
-        dshape(2, 0) = -1;
-        dshape(2, 1) = -1;
+            dshape(i, 0) = basis[i].DValue(0);    // x-derivative
+            dshape(i, 1) = basis[i].DValue(1);    // y-derivative
+        }
+
     }
+    //*/
+
 
     MyLinearRect::MyLinearRect()
     /*
@@ -143,6 +147,7 @@ namespace ngfem {
         // matrix of derivatives:
         double x = ip(0);
         double y = ip(1);
+
 
         dshape(0, 0) = -1 + y;
         dshape(0, 1) = -1 + x;

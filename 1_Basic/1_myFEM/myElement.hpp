@@ -13,7 +13,6 @@ My own simple first and second order triangular finite elements
 
 */
 
-
 namespace ngfem {
 
     /*
@@ -87,11 +86,12 @@ namespace ngfem {
         virtual void CalcDShape(const IntegrationPoint &ip,
                                 BareSliceMatrix<> dshape) const;
 
+        virtual std::array<AutoDiff<2>, 10> GetBasis(const IntegrationPoint &ip) const;
+
         // there are some more functions to bring in ...
         using ScalarFiniteElement<2>::CalcShape;
         using ScalarFiniteElement<2>::CalcDShape;
     };
-
     /*
       A triangular finite element with second order basis functions
      */

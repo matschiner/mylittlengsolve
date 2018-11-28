@@ -34,6 +34,7 @@ namespace ngcomp {
         FE_geom = flags.GetStringFlag("FE_geom", "trig");
         cout << "You have chosen the following type of FE elements: " << FE_geom << endl;
 
+        cout << "You have chosen the following order of elements: " << order << endl;
 
         // needed for symbolic integrators and to draw solution
         evaluator[VOL] = make_shared<T_DifferentialOperator<DiffOpId<2>>>();
@@ -61,16 +62,24 @@ namespace ngcomp {
 
         // number of vertices
         nvert = ma->GetNV();
+        nedges = ma->GetNEdges();
+        nelems = ma->GetNE();
 
         // number of dofs:
         ndof = nvert;
         if (order == 2) {
-            ndof += ma->GetNEdges();  // num vertics + num edges
+            ndof += nedges;  // num vertics + num edges
+        } else if (order == 3) {
+            ndof += 2 * nedges;  // num vertics + num edges
+            ndof += nelems;
+
+        }
     }
 
     void MyFESpace::GetDofNrs(ElementId ei, Array<DofId> &dnums) const {
         // returns dofs of element ei
         // may be a volume triangle or boundary segment
+
 
         dnums.SetSize(0);
 
@@ -85,6 +94,32 @@ namespace ngcomp {
             }
         }
 
+
+        if (order == 3) {
+            for (auto v : ma->GetElVertices(ei)) {
+                dnums.Append(v);
+            }
+
+            Array<int> nb;
+
+            for (auto e :  ma->GetElEdges(ei)) {
+                ma->GetEdgeElements(e, nb);
+                if (ei.Nr() <= nb[0] && (nb.Size() == 1 || ei.Nr() <= nb[1])) {
+                    dnums.Append(nvert + 2 * e);
+                    dnums.Append(nvert + 2 * e + 1);
+                } else {
+                    dnums.Append(nvert + 2 * e + 1);
+                    dnums.Append(nvert + 2 * e);
+                }
+            }
+            if (ei.IsVolume()) {
+                dnums.Append(nvert + 2 * nedges + ei.Nr());
+            }
+
+        }
+
+    }
+
     FiniteElement &MyFESpace::GetFE(ElementId ei, Allocator &alloc) const {
         if (ei.IsVolume()) {
 
@@ -98,12 +133,17 @@ namespace ngcomp {
                     cout << "no method found for FE with " << ma->GetElVertices(ei).Size() << " vertices" << endl;
                     return *new(alloc) MyLinearTrig;
                 }
-            } else
+            } else if (order == 2) {
                 return *new(alloc) MyQuadraticTrig;
+            } else if (order == 3) {
+                return *new(alloc) MyCubicTrig;
+            }
+
         } else {
             if (order == 1)
                 return *new(alloc) FE_Segm1;
             else
+                cout << "not line Segment specified" << endl;
                 return *new(alloc) FE_Segm2;
         }
     }

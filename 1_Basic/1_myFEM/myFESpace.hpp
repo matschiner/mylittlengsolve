@@ -22,7 +22,8 @@ namespace ngcomp {
 
         int order;
         string FE_geom="";
-        int ndof, nvert;
+        int ndof, nvert, nedges, nelems;
+
 
     public:
         /*

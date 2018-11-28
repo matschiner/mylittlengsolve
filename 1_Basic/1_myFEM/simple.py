@@ -3,10 +3,11 @@ import netgen.gui
 from ngsolve import *
 from myngspy import *
 
-mesh = Mesh(unit_square.GenerateMesh(maxh=0.4))
+mesh = Mesh(unit_square.GenerateMesh(maxh=0.2))
 
 # fes = MyFESpace(mesh, dirichlet="top|bottom|right|left")
-fes = FESpace("myfespace", mesh, dirichlet="top|bottom|right|left", flags={"order": 1})
+
+fes = FESpace("myfespace", mesh, dirichlet="top|bottom|right|left", flags={"order": 3})
 # print ("freedofs: ", fes.FreeDofs())
 
 
@@ -23,6 +24,10 @@ f += MySource(x * y)
 
 a.Assemble()
 f.Assemble()
+gfu = GridFunction(fes)
+import time
+
+
 
 u = GridFunction(fes)
 
