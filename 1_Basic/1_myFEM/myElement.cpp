@@ -36,7 +36,7 @@ namespace ngfem {
           Vertex coordinates have been defined to be (1,0), (0,1), (0,0)
           see ElementTopology::GetVertices(ET_TRIG)
          */
-        cout << shape.Dist() << "sdfa" << endl;
+        //cout << shape.Dist() << "sdfa" << endl;
         // define shape functions
         shape(0) = x;
         shape(1) = y;
@@ -212,6 +212,35 @@ namespace ngfem {
             dshape(3 + i, 0) = shape.DValue(0);    // x-derivative
             dshape(3 + i, 1) = shape.DValue(1);    // y-derivative
         }
+    }
+
+    ThirdOrderLineSegment::ThirdOrderLineSegment() : ScalarFiniteElement<1>(4, 3) {
+
+    }
+
+    std::array<AutoDiff<2>, 4> GetThirdOrderLineSegmentBasisFunctions(const IntegrationPoint &ip) {
+        AutoDiff<2> x(ip(0), 0);
+
+        return {
+                -(9.0/2) * (x - 1.0/3) * (x - 2.0/3) * (x - 1.0),
+                (9.0/2) * x * (x - 1.0/3) * (x - 2.0/3),
+                (27.0/2) * x * (x - 2.0/3) * (x - 1.0),
+                -(27.0/2) * x * (x - 1.0/3) * (x - 1.0)
+        };
+    }
+
+    void ThirdOrderLineSegment::CalcShape(const IntegrationPoint &ip, BareSliceVector<> shape) const
+    {
+        auto basis = GetThirdOrderLineSegmentBasisFunctions(ip);
+        for(int i = 0; i < ndof; i++)
+            shape(i) = basis[i].Value();
+    }
+
+    void ThirdOrderLineSegment::CalcDShape(const IntegrationPoint &ip, BareSliceMatrix<> dshape) const
+    {
+        auto basis = GetThirdOrderLineSegmentBasisFunctions(ip);
+        for(int i = 0; i < ndof; i++)
+            dshape(i, 0) = basis[i].DValue(0);
     }
 
 }

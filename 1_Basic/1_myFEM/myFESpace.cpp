@@ -142,9 +142,12 @@ namespace ngcomp {
         } else {
             if (order == 1)
                 return *new(alloc) FE_Segm1;
-            else
+            else if (order == 3)
+                return *new(alloc) ThirdOrderLineSegment;
+            else {
                 cout << "not line Segment specified" << endl;
                 return *new(alloc) FE_Segm2;
+            }
         }
     }
 
