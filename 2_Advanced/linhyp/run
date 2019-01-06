@@ -1,0 +1,6 @@
+#!/bin/bash
+echo $PWD $USER
+source /Users/max/.bash_profile
+export PATH=$PATH:/usr/local/bin
+export PYTHONPATH=$PYTHONPATH:/Users/max/Dev/mylittlengsolve/2_Advanced/linhyp/xcode/Release/:/Users/max/Dev/ngsolve-install/Contents/Resources/lib/python3.7/site-packages
+mpirun  --mca orte_base_help_aggregate 0 python3 linhyp.py
