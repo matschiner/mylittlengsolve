@@ -24,13 +24,14 @@ class Convection {
 protected:
     shared_ptr<L2HighOrderFESpace> fes;
     shared_ptr<CoefficientFunction> cfflow;
-    FlatVector<int> distant_procs;
-
+    Array<Array<double>> trace_send;
+    Array<Array<double>> trace_get;
     class FacetData {
     public:
         size_t elnr[2];
         int facetnr[2];
         Vector<> flown;
+        int distant_proc = 0;
 
         FacetData() = default;
 
@@ -59,7 +60,7 @@ public:
         elementdata.SetAllocSize(ma->GetNE());
 
 
-        cout << "my id is: " << MyMPI_GetId() << "\nrunning with: " << MyMPI_GetNTasks() << " tasks" << endl;
+        //cout << "my id is: " << MyMPI_GetId() << "\nrunning with: " << MyMPI_GetNTasks() << " tasks" << endl;
 
         if (!fes->AllDofsTogether())
             throw Exception("mlngs-Convection needs 'all_dofs_together=True' for L2-FESpace");
@@ -91,6 +92,10 @@ public:
         Array<int> elnums, fnums, vnums;
 
         facetdata.SetAllocSize(ma->GetNFacets());
+
+        int ranksize = MyMPI_GetNTasks();
+        Array<int> facets_shared_counts(ranksize);
+        facets_shared_counts = 0;
 
         for (auto i : Range(ma->GetNFacets())) {
             HeapReset hr(lh);
@@ -135,10 +140,27 @@ public:
                 fai.flown(j) *= ir[j].Weight() * mir[j].GetJacobiDet();
             }
 
+            // count the number of shared facets with each other proc
+            if (fai.elnr[1] == -1) {
+                auto dp = ma->GetDistantProcs(NodeId(StdNodeType(NT_FACET, ma->GetDimension()), i));
+                if (dp.Size() == 1) {
+                    fai.distant_proc = dp[0];
+                    facets_shared_counts[dp[0]]++;
+                }
+            }
+
             facetdata.Append(move(fai));
         }
 
-        //        cout << "end on "<<MyMPI_GetId()<<endl;
+        // allocate
+        trace_get.SetSize(ranksize);
+        trace_send.SetSize(ranksize);
+        for (auto j: Range(ranksize)) {
+            trace_get[j].SetSize(facets_shared_counts[j] * 6);
+            trace_send[j].SetSize(facets_shared_counts[j] * 6);
+        }
+
+
     }
 
 
@@ -147,7 +169,6 @@ public:
         //cout << "starting apply" << endl;
         RegionTimer reg(t);
         LocalHeap lh(1000 * 1000);
-        LocalHeap gh(1000 * 1000);
 
         auto vecu = _vecu.FV<double>();
         auto conv = _conv.FV<double>();
@@ -159,26 +180,6 @@ public:
         //find out the exchange dofs
         int ranksize = MyMPI_GetNTasks();
         int rankid = MyMPI_GetId();
-
-        Vector<int> shared_facets_counts(ranksize);
-        shared_facets_counts = 0;
-
-        for (auto i: Range(ma->GetNFacets())) {
-            auto dp = ma->GetDistantProcs(NodeId(StdNodeType(NT_FACET, ma->GetDimension()), i));
-            if (dp.Size() == 1) {
-                shared_facets_counts[dp[0]]++;
-            }
-        }
-
-        Array<Vector<double>> data_get[ranksize];
-        FlatArray < FlatArray < double >> data_send[ranksize];
-        FlatArray < FlatArray < double >> data_get2[ranksize];
-        for (auto i: Range(ranksize)) {
-            data_get[i].SetAllocSize(shared_facets_counts[i]);
-            data_send[i].Assign(shared_facets_counts[i], gh);
-
-            data_get2[i].Assign(shared_facets_counts[i], gh);
-        }
 
         ParallelFor
                 (Range(ma->GetNE()), [&](size_t i) {
@@ -219,11 +220,7 @@ public:
 
         static mutex add_mutex;
 
-        MyMPI_Barrier();
-        if (rankid == 0) cout << "finished element data" << endl;
-
-
-        Vector<int> k(ranksize);
+        Array<int> k(ranksize);
         k = 0;
 
         ParallelFor
@@ -302,13 +299,9 @@ public:
 
                         felfacet.Evaluate(ir, trace1, tracei1);
 
-                        auto dp = ma->GetDistantProcs(NodeId(StdNodeType(NT_FACET, ma->GetDimension()), i));
-                        if (dp.Size() == 1) {
-                            FlatArray < double > tmp(nip, gh);
-                            tmp = tracei1;
-
-                            data_send[dp[0]][k[dp[0]]++].Assign(tmp);
-                            data_get2[dp[0]][k[dp[0]]++].Assign(tmp);
+                        if (fai.distant_proc > 0) {
+                            trace_send[fai.distant_proc].Range(k[fai.distant_proc], k[fai.distant_proc] + 6) = tracei1;
+                            k[fai.distant_proc] += 6;
                         } else {
                             for (size_t j = 0; j < nip; j++)
                                 tracei(j) = flown(j) * ((flown(j) > 0) ? tracei1(j) : 0);
@@ -323,81 +316,28 @@ public:
                         }
                     }
                 });
-        /*
-        if (rankid==0) cout << "start sending"<<endl;
+
         Array<MPI_Request> requests;
         for (auto i : Range(ranksize)) {
             if (i == rankid) {
                 continue;
             }
-            for (auto j : Range(shared_facets_counts[i])) {
-
-                auto t1=MyMPI_ISend(data_send[i][j], i, j);
-                requests.Append(t1);
-
-                auto t2 = MyMPI_IRecv(data_get2[i][j], i, j);
-                requests.Append(t2);
-            }
+            MyMPI_ISend(trace_send[i], i);
+            auto r_recv = MyMPI_IRecv(trace_get[i], i);
+            requests.Append(r_recv);
         }
-        for (auto i : Range(ranksize)) {
-            cout << data_get2[i]<<endl;
-        }
-
-        if (requests.Size() != 0) {
-//            cout << "waiting for " << requests.Size() << endl;
-            MyMPI_WaitAll(requests);
-        }
-        MyMPI_Barrier();
-        */
-
-
-
-        if (rankid == 0) {
-            cout << "finish" << endl;
-        }
-
-        for (auto i : Range(ranksize)) {
-            for (auto j: Range(ranksize)) {
-
-                if (i == j) {
-                    continue;
-                }
-                //                cout << "sending from "<<i<< " to "<<j<<endl;
-                if (rankid == i) {
-                    for (auto k : Range(shared_facets_counts[j])) {
-                        MyMPI_Send(data_send[j][k], j);
-                    }
-                }
-
-                if (rankid == j) {
-                    for (auto k : Range(shared_facets_counts[i])) {
-                        Vector<double> tmp1(6);
-                        FlatArray < double > tmp2(6, gh);
-                        MyMPI_Recv(tmp2, i);
-                        data_get2[i][k].Assign(tmp2);
-                    }
-                }
-            }
-        }
-        for (auto i : Range(ranksize)) {
-            cout << data_get2[i] << endl;
-        }
-
-        MyMPI_Barrier();
-        if (rankid == 0)
-            cout << "really finished waiting" << endl;
+        MyMPI_WaitAll(requests);
         k = 0;
+
         ParallelFor
                 (Range(ma->GetNFacets()), [&](size_t i) {
                     LocalHeap slh = lh.Split(), &lh = slh;
 
-
                     const FacetData &fai = facetdata[i];
 
-
                     if (fai.elnr[1] == -1) {
-                        auto dp = ma->GetDistantProcs(NodeId(StdNodeType(NT_FACET, ma->GetDimension()), i));
-                        if (dp.Size() == 1) {
+
+                        if (fai.distant_proc > 0) {
                             // boundary facet
                             const DGFiniteElement<D> &fel1 = dynamic_cast<const DGFiniteElement<D> &> (fes->GetFE(ElementId(VOL, fai.elnr[0]), lh));
                             const DGFiniteElement<D - 1> &felfacet = dynamic_cast<const DGFiniteElement<D - 1> & > (fes->GetFacetFE(i, lh));
@@ -420,7 +360,8 @@ public:
 
                             felfacet.Evaluate(ir, trace1, tracei1);
 
-                            auto tracei2 = data_get2[dp[0]][k[dp[0]]++];
+                            auto tracei2 = trace_get[fai.distant_proc].Range(k[fai.distant_proc], k[fai.distant_proc] + 6);
+                            k[fai.distant_proc] += 6;
 
                             for (size_t j = 0; j < nip; j++)
                                 tracei(j) = flown(j) * ((flown(j) > 0) ? tracei1(j) : tracei2[j]);
@@ -430,7 +371,7 @@ public:
 
                             {
                                 lock_guard<mutex> guard(add_mutex);
-                                conv.Range(dn1) += (rankid > dp[0] ? +1 : -1) * elu1;
+                                conv.Range(dn1) -= elu1;
                             }
 
                         }
